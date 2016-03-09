@@ -1,0 +1,177 @@
+---
+title: "Becas Crema 2.0"
+author: "Wilmer Prieto CI V-21468564"
+date: "8 de marzo de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Tarea 2 Algoritmos de Clasificación
+
+A continuación se mostrará todo el procedimiento realizado para evaluar la calidad de los modelos basados en **Arboles de desición, reglas de clasificación y k vecinos mas cercanos**, entorno a la predicción del modo de ingreso de una persona a la UCV, para las carreras de Enfermería y Bionálisis.
+
+##Se procede a instalar y cargar los paquetes necesarios
+
+```{r }
+#La instalación de los paquetes se muestra comentada porque ya se encuentran instalados en el ambiente de desarrollo
+#install.packages('rpart')
+#install.packages('rpart.plot')
+#install.packages('RWeka')
+#install.packages('class')
+#install.packages('pROC')
+library('rpart')
+library('rpart.plot')
+library('RWeka')
+library('class')
+library('pROC')
+
+```
+
+## Se almacena el archivo **minable.csv** como un dataset
+
+Este archivo contiene la vista minable con los datos relacionados a la Renovación de Becas, los cuales serán utilizados para implementar y evaluar los modelos anteriormente mencionados
+
+```{r }
+minable <- read.csv("C:/Users/soluciones/Desktop/Tarea2/minable.csv", header = TRUE)
+```
+
+## Eliminación y Correción de datos en el dataset
+
+No toda la data es necesaria, por lo que se eliminan los atributos que se consideran no relevantes para el tipo de análisis que se desea realizar. En general se eliminaron los atributos cuyos valores son cadenas de carateres y/o atributos que poseen tipos de datos que no corresponden con los que debería de ser. Además se corrigen ciertos errores y outliers en la data
+
+```{r }
+minable[,"cIdentidad"] <- NULL
+minable[,"fNacimiento"] <- NULL
+minable[,"tGrado"] <- NULL
+minable[,"jReprobadas"] <- NULL 
+minable[,"eCivil"] <- NULL
+minable[,"dHabitacion"] <- NULL
+minable[,"cDireccion"] <- NULL
+minable[,"oSolicitudes"] <- NULL
+minable[,"grOdontologicos"] <- NULL
+minable[,"aEconomica"] <- NULL
+minable[,"rating"] <- NULL
+minable[,"sugerencias"] <- NULL
+
+minable$pReside[2] = 7 #Dado que reside con esposo(a) e hijos (as) debe pertenecer a la categoria 7 según la documentación de la vista minable
+minable$pReside[26] = 7 #Dado que reside con esposo(a) e hijos (as) debe pertenecer a la categoria 7 según la documentación de la vista minable
+minable$grOtros[5] = 0 #Se coloca 0 a este outlier
+minable$grOtros[5] = mean(minable$grOtros) # Se utiliza la media para corregir este outlier
+minable$pReside = as.integer(minable$pReside)
+
+```
+
+## Muestreo de entrenamiento y prueba
+
+Dado que se tienen 3 posibles valores (0,2 o 3) para el atributo que se desea predecir **"mIngreso"**, se realiza un muestreo estratificado para asegurar que el mismo sea proporcional y exista un equilibrio en las muestras de entrenamiento y prueba 
+
+```{r }
+aux0 <- minable[minable$mIngreso == 0, ]
+aux2 <- minable[minable$mIngreso == 2, ]
+aux3 <- minable[minable$mIngreso == 3, ]
+
+muestra0 <- sample(nrow(aux0), nrow(aux0) * 0.8, replace = FALSE , prob=NULL)
+train0 <- aux0[muestra0,]
+test0 <- aux0[-muestra0,]
+
+muestra2 <- sample(nrow(aux2), nrow(aux2) * 0.8, replace = FALSE , prob=NULL)
+train2 <- aux2[muestra2,]
+test2 <- aux2[-muestra2,]
+
+muestra3 <- sample(nrow(aux3), nrow(aux3) * 0.8, replace = FALSE , prob=NULL)
+train3 <- aux3[muestra3,]
+test3 <- aux3[-muestra3,]
+
+finalTraining <- merge(merge(train0, train2, all = TRUE),train3, all = TRUE)
+finalTesting <- merge(merge(test0, test2, all = TRUE),test3, all = TRUE)
+```
+
+
+## Arbol de Decisiones
+
+Se realiza la implementación del modelo basado en Arbol de decisiones, se muestra la gráfica del arbol generado, se realiza la matriz de confunsion, se calcula la precision y el error del modelo; y por último se evalúa la calidad del mismo utilizando **ROC(Receiver Operating Characteristic)**
+
+```{r }
+arbolDecision <- rpart(mIngreso ~ ., data = finalTraining , method ="class")
+rpart.plot(arbolDecision)
+predictArbol <- predict(arbolDecision, finalTesting, type = "class")
+
+matrizConfusionArbol <- table(finalTesting$mIngreso, predictArbol)
+matrizConfusionArbol
+
+#Accuracy 
+accuraccyArbol <- (matrizConfusionArbol[1,1] + matrizConfusionArbol[2,2] + matrizConfusionArbol[3,3]) / nrow(finalTesting)
+accuraccyArbol
+
+#Error
+errorArbol <- 1 - accuraccyArbol
+errorArbol
+
+#ROC
+rArbol <- roc(finalTesting$mIngreso, as.numeric(predictArbol), levels=c(0,2,3))
+plot(rArbol)
+```
+
+
+## Reglas de Clasificación
+
+Se realiza la implementación del modelo basado en Reglas de Clasificación, se realiza la matriz de confunsion, se calcula la precision y el error del modelo; y por último se evalúa la calidad del mismo utilizando **ROC(Receiver Operating Characteristic)**
+
+```{r }
+trainClass <- finalTraining
+testClass <- finalTesting
+
+trainClass$mIngreso = as.factor(trainClass$mIngreso)
+testClass$mIngreso = as.factor(testClass$mIngreso)
+
+predictClass <- predict(OneR(formula = mIngreso ~ ., data = trainClass), testClass, type = "class")
+matrizConfusionClass = table(testClass$mIngreso, predictClass)
+matrizConfusionClass
+
+#Accuracy, 
+accuraccyClass <- (matrizConfusionClass[1,1] + matrizConfusionClass[2,2] + matrizConfusionClass[3,3]) / nrow(finalTesting)
+accuraccyClass
+
+#Error
+errorClass <- 1 - accuraccyClass
+errorClass
+
+#ROC
+rClass <- roc(finalTesting$mIngreso, as.numeric(predictClass), levels=c(0,2,3))
+plot(rClass)
+```
+
+## K vecinos más cercanos
+
+Se realiza la implementación del modelo basado en K vecinos más cercanos, se realiza la matriz de confunsion, se calcula la precision y el error del modelo; y por último se evalúa la calidad del mismo utilizando **ROC(Receiver Operating Characteristic)**. El k utilizado para la funcion knn es 14 debido a que se recomienda elegir como k, a la raiz cuadrada de los registros totales y en este caso son 190, que tiene una raíz de 13.7 y es aproximada a 14
+
+```{r }
+predictKnn <- knn(train = finalTraining, test = finalTesting, cl = finalTraining$mIngreso, k=14)
+matrizConfusionKnn <- table(finalTesting$mIngreso, predictKnn)
+matrizConfusionKnn
+
+#Accuracy
+accuraccyKnn <- (matrizConfusionKnn[1,1] + matrizConfusionKnn[2,2] + matrizConfusionKnn[3,3]) / nrow(finalTesting)
+accuraccyKnn
+
+#Error
+errorKnn <- 1 - accuraccyKnn
+errorKnn
+
+#ROC
+rKnn <- roc(finalTesting$mIngreso, as.numeric(predictKnn), levels=c(0,2,3))
+plot(rKnn)
+```
+
+## ¿Cuál de los tres modelos es mejor y por qué?
+
+Justificación
+
+```{r }
+
+```
+
+
