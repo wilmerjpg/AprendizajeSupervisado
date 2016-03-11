@@ -35,6 +35,7 @@ minable$grOtros[5] = mean(minable$grOtros) # Se utiliza la media de toda la colu
 minable$pReside = as.integer(minable$pReside) # Si se intenta realizar alguna operacion numerica o logica retorna NA, por lo que se procede a pasarla a formato integer
 
 #Estratificacion de las muestras de train y test-----
+set.seed(883)
 aux0 <- minable[minable$mIngreso == 0, ]
 #aux1 <- minable[minable$mIngreso == 1, ]
 aux2 <- minable[minable$mIngreso == 2, ]
@@ -126,4 +127,3 @@ errorKnn
 rKnn <- roc(finalTesting$mIngreso, as.numeric(predictKnn), levels=c(0,2,3))
 plot(rKnn)
 #PARTE I Finalizada
-

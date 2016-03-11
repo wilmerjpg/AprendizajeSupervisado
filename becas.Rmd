@@ -15,7 +15,7 @@ A continuación se mostrará todo el procedimiento realizado para evaluar la calid
 
 ##Se procede a instalar y cargar los paquetes necesarios
 
-```{r }
+```{r, warning= FALSE}
 #La instalación de los paquetes se muestra comentada porque ya se encuentran instalados en el ambiente de desarrollo
 #install.packages('rpart')
 #install.packages('rpart.plot')
@@ -34,7 +34,7 @@ library('pROC')
 
 Este archivo contiene la vista minable con los datos relacionados a la Renovación de Becas, los cuales serán utilizados para implementar y evaluar los modelos anteriormente mencionados
 
-```{r }
+```{r, warning= FALSE}
 minable <- read.csv("C:/Users/soluciones/Desktop/Tarea2/minable.csv", header = TRUE)
 ```
 
@@ -69,6 +69,7 @@ minable$pReside = as.integer(minable$pReside)
 Dado que se tienen 3 posibles valores (0,2 o 3) para el atributo que se desea predecir **"mIngreso"**, se realiza un muestreo estratificado para asegurar que el mismo sea proporcional y exista un equilibrio en las muestras de entrenamiento y prueba 
 
 ```{r }
+set.seed(883)
 aux0 <- minable[minable$mIngreso == 0, ]
 aux2 <- minable[minable$mIngreso == 2, ]
 aux3 <- minable[minable$mIngreso == 3, ]
@@ -164,14 +165,9 @@ errorKnn
 #ROC
 rKnn <- roc(finalTesting$mIngreso, as.numeric(predictKnn), levels=c(0,2,3))
 plot(rKnn)
+roc.test(rKnn, rClass)
 ```
 
 ## ¿Cuál de los tres modelos es mejor y por qué?
 
-Justificación
-
-```{r }
-
-```
-
-
+Al evaluar los 3 modelos implementados con la función **roc** del paquete **pROC**, y hacer plot del resultado, se puede observar que el gráfico de la curva ROC que presentó mayor area de por debajo de la curva fue el modelo basado en reglas de clasificacion, seguido por el modelo basado en k vecinos cercanos y por ultimo el modelo basado en arbol de decisiones. Dado estos resultados se puede concluir que la calidad de los modelos viene dada por el orden anteriormente ya mencionado, es decir, que el modelo de mayor calidad para el caso estudiado es el modelo basado en reglas de clasificacion, del cual tambien se puede destacar que obtuvo la mayor precision de todos la cual se puede osbservar luego de haber construido su matriz de confusion
