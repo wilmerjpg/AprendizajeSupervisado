@@ -1,0 +1,219 @@
+---
+title: "Becas Crema 2.0"
+author: "Wilmer Prieto CI V-21468564"
+date: "8 de marzo de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Tarea 2 Regresión lineal
+
+A continuación se mostrará todo el procedimiento realizado para encontrar un modelo de regresión apropiado para hombres y otro para mujeres para tratar de predecir
+el precio mensual de un hogar
+
+##Se procede a instalar y cargar los paquetes necesarios
+
+```{r, warning= FALSE}
+#La instalación de los paquetes se muestra comentada porque ya se encuentran instalados en el ambiente de desarrollo
+#install.packages('curl')
+#install.packages('xlsx')
+library('curl')
+library('xlsx')
+
+```
+
+## Se carga el archivo google_api.R para la utilizacion del Api de Google Maps Directions y se lee el archivo **hogares.xlsx** como un dataset
+
+
+```{r}
+source('google_api.R')
+
+hogaresData <- read.xlsx("hogares.xlsx", sheetIndex = 1, endRow = 104, header = TRUE, encoding = 'UTF-8')
+
+```
+
+
+##Se guarda la ciudad destino, el api_key, se crea una columna duracion y se guarda la duracion en minutos retornada por el API para llegar hasta el destino
+
+```{r}
+destino <- "Piazzale Aldo Moro"
+api_key = "AIzaSyAUGKVTtI2SL6kY38CQVZh-WuLw_jSfgOo"
+
+hogaresData$Dirección <- gsub("\n", " ", hogaresData$Dirección)
+hogaresData$Distrito <- gsub("\n", " ", hogaresData$Distrito)
+
+hogaresData["Duracion"] <- 0
+for (i in 1:nrow(hogaresData)) {
+  origen <- c(hogaresData$Dirección[i],hogaresData$Distrito[i])
+  api_url = get_url(origen, destino, api_key)
+  datos = get_data(api_url)
+  datosParse = parse_data(datos)
+  print(datosParse)
+  if(length(datosParse$duration$value) > 0){
+    hogaresData$Duracion[i] <- datosParse$duration$value
+  }
+}
+```
+
+## Se procede a realizar el preprocesamiento a los datos leídos de hogares.xlsx
+
+Se eliminan la data de Foto y Piso por no proporcionar información relevante para el problema
+
+```{r }
+hogaresData$Foto <- NULL
+hogaresData$Piso <- NULL
+```
+
+
+Se categoriza la data de tipo de inmueble, Mini Appartamento = 0, Monolocale = 1 y Appartamento = 2
+
+```{r }
+hogaresData$Tipo.de.Inmueble = as.character(hogaresData$Tipo.de.Inmueble)
+hogaresData$Tipo.de.Inmueble[grepl("min", hogaresData$Tipo.de.Inmueble, ignore.case = TRUE)] <- 0 
+hogaresData$Tipo.de.Inmueble[grepl("monolocale", hogaresData$Tipo.de.Inmueble, ignore.case = TRUE)] <- 1
+hogaresData$Tipo.de.Inmueble[grepl("ap", hogaresData$Tipo.de.Inmueble, ignore.case = TRUE)] <- 2
+```
+
+
+Se categoriza la data de notas, ragazzi = 0, ragazze = 1 y ragazzi/ragazze = 2 y se cambió el nombre de la columna a Sexo
+
+```{r }
+hogaresData$Notas = as.character(hogaresData$Notas)
+hogaresData$Notas[grepl("ragazzi/ragazze | ragazze/ragazzi | ragazze/i | ragazzi/e", hogaresData$Notas)] <- 2 #Ambos
+hogaresData$Notas[grepl("ragazze", hogaresData$Notas, ignore.case = TRUE)] <- 1 #Mujeres
+hogaresData$Notas[grepl("ragazzi", hogaresData$Notas, ignore.case = TRUE)] <- 0 #Hombre
+hogaresData$Notas[39] <- 2 #Como no se especifica se asume que puede ser indiferente el sexo
+colnames(hogaresData)[ncol(hogaresData)] <- "Sexo"
+```
+
+
+Se crean las columnas de Entradas, Cocinas, Cuartos, Baños y Salas, la data de las mismas es extraida de la columna descripcion y una vez que se finaliza de extraer toda la data considerada se elimina la columna descripcion
+
+```{r }
+hogaresData["Entradas"] <- 0
+hogaresData["Cocinas"] <- 0
+hogaresData["Cuartos"] <- 0
+hogaresData["Baños"] <- 0
+hogaresData["Salas"] <- 0
+
+hogaresData$Entradas[grepl("ing", hogaresData$Descripción, ignore.case = TRUE)] <- 1
+hogaresData$Cocinas[grepl("cuc", hogaresData$Descripción, ignore.case = TRUE)] <- 1
+hogaresData$Cocinas[grepl("cottura", hogaresData$Descripción, ignore.case = TRUE)] <- 1
+hogaresData$Cuartos[grepl("camer", hogaresData$Descripción, ignore.case = TRUE)] <- 1
+hogaresData$Cuartos[grepl("2 camer", hogaresData$Descripción, ignore.case = TRUE)] <- 2
+hogaresData$Cuartos[grepl("3 camer", hogaresData$Descripción, ignore.case = TRUE)] <- 3
+hogaresData$Cuartos[grepl("tre camer", hogaresData$Descripción, ignore.case = TRUE)] <- 3
+hogaresData$Cuartos[grepl("4 camer", hogaresData$Descripción, ignore.case = TRUE)] <- 4
+hogaresData$Cuartos[grepl("4 stanze", hogaresData$Descripción, ignore.case = TRUE)] <- 4
+hogaresData$Baños[grepl("bag", hogaresData$Descripción, ignore.case = TRUE)] <- 1
+hogaresData$Baños[grepl("2 bag", hogaresData$Descripción, ignore.case = TRUE)] <- 2
+hogaresData$Baños[grepl("2bag", hogaresData$Descripción, ignore.case = TRUE)] <- 2
+hogaresData$Baños[grepl("3 bag", hogaresData$Descripción, ignore.case = TRUE)] <- 3
+hogaresData$Baños[grepl("4 bag", hogaresData$Descripción, ignore.case = TRUE)] <- 4
+hogaresData$Salas[grepl("soggio", hogaresData$Descripción, ignore.case = TRUE)] <- 1
+hogaresData$Salas[grepl("sal", hogaresData$Descripción, ignore.case = TRUE)] <- 1
+
+hogaresData$Descripción <- NULL
+```
+
+
+En la columna de precio mensual se procede a borrar todos los caracteres no numericos, quedandose unicamente los montos separados por espacios.
+
+```{r }
+hogaresData$Precio.Mensual = as.character(hogaresData$Precio.Mensual)
+for (i in 1:nrow(hogaresData)) {
+  hogaresData$Precio.Mensual[i] = gsub(";","",hogaresData$Precio.Mensual[i])
+  hogaresData$Precio.Mensual[i] = gsub("[A-Za-z]","",hogaresData$Precio.Mensual[i])
+  if (i != 5){
+    hogaresData$Precio.Mensual[i] = gsub(",","",hogaresData$Precio.Mensual[i])
+  }
+  hogaresData$Precio.Mensual[i] = gsub(" ","",hogaresData$Precio.Mensual[i])
+  hogaresData$Precio.Mensual[i] = gsub("\\n","",hogaresData$Precio.Mensual[i])
+  
+  hogaresData$Precio.Mensual[i] = gsub("\\D"," ",hogaresData$Precio.Mensual[i])
+  if (i == 5){
+    hogaresData$Precio.Mensual[i] = gsub("55 00","",hogaresData$Precio.Mensual[i])
+  }
+}
+```
+
+
+Se crearon dos columnas, "Tipo.Habitacion" una para categorizar Habitaciones.Disponibles, singole = 0, doppia = 1,  posto letto = 2 y Intero Appartamento 3; y la columna Precio para almacenar el precio de cada habitacion segun el tipo, ya que los registros que disponen de varias habitaciones, son dividos en otros registros, de tal forma de tener en cada registro una habitacion y un precio
+
+```{r }
+hogaresData$Habitaciones.Disponibles = as.character(hogaresData$Habitaciones.Disponibles)
+hogaresData["Tipo.Habitacion"] <- NA
+hogaresData["Precio"] <- 0
+hogaresData$Tipo.Habitacion[grepl("singol", hogaresData$Habitaciones.Disponibles, ignore.case = TRUE)] <- 0
+hogaresData$Tipo.Habitacion[grepl("doppi", hogaresData$Habitaciones.Disponibles, ignore.case = TRUE)] <- 1
+hogaresData$Tipo.Habitacion[grepl("posto", hogaresData$Habitaciones.Disponibles, ignore.case = TRUE)] <- 2
+hogaresData$Tipo.Habitacion[grepl("app", hogaresData$Habitaciones.Disponibles, ignore.case = TRUE)] <- 3
+hogaresData$Tipo.Habitacion[grepl("mon", hogaresData$Habitaciones.Disponibles, ignore.case = TRUE)] <- 3
+
+
+for (i in 1:nrow(hogaresData)) {
+  hab = substr(hogaresData$Habitaciones.Disponibles[i], 1, 4)
+  hab2 = substr(hogaresData$Habitaciones.Disponibles[i], 12, 16)
+  aux = strsplit(hogaresData$Precio.Mensual[i], " ")
+  aux2 = aux[[1]]
+  size = length(aux2) - 1
+  if(size == 1 || i == 74){
+    hogaresData$Precio[i] = aux2[2]
+  }else if(size == 2 || i == 18){
+    hogaresData$Precio[i] = aux2[2]
+    newRow <- hogaresData[i, ]
+    if(hab == "1 do"){
+      hogaresData$Tipo.Habitacion[i] = 1
+      newRow$Tipo.Habitacion = 0
+    }else if(hab == "1 si" || hab == "1 Si"){
+      hogaresData$Tipo.Habitacion[i] = 0
+      if(hab2 == "1 pos"){
+        newRow$Tipo.Habitacion = 2
+      }else{
+        newRow$Tipo.Habitacion = 1
+      }
+    }
+    newRow$Precio = aux2[3]
+    hogaresData <- rbind(hogaresData, newRow)
+  }else if(size == 3){
+    hogaresData$Precio[i] = aux2[2]
+    hogaresData$Tipo.Habitacion[i] = 0
+    newRow <- hogaresData[i, ]
+    newRow$Precio = aux2[3]
+    newRow$Tipo.Habitacion = 0
+    hogaresData <- rbind(hogaresData, newRow)
+    newRow <- hogaresData[i, ]
+    if(hab == "2 si"){
+      newRow$Tipo.Habitacion = 1
+    }else{
+      newRow$Tipo.Habitacion = 0
+    }
+    newRow$Precio = aux2[4]
+    hogaresData <- rbind(hogaresData, newRow)
+  }else if(size == 4){
+    hogaresData$Precio[i] = aux2[2]
+    newRow <- hogaresData[i, ]
+    newRow$Precio = aux2[3]
+    hogaresData <- rbind(hogaresData, newRow)
+    newRow <- hogaresData[i, ]
+    newRow$Precio = aux2[4]
+    hogaresData <- rbind(hogaresData, newRow)
+    newRow <- hogaresData[i, ]
+    newRow$Precio = aux2[5]
+    hogaresData <- rbind(hogaresData, newRow)
+  }
+}
+```
+
+Por última se elimnan las columnas que ya no se necesitan dado que su data ya fue vaciada en otras columnas para un mejor manejo y las columnas que manejan numeros enteros pero en un principio manejaban otro tipo de datos
+```{r }
+hogaresData$Habitaciones.Disponibles <- NULL
+hogaresData$Precio.Mensual <- NULL
+hogaresData$Tipo.de.Inmueble <- as.numeric(hogaresData$Tipo.de.Inmueble)
+hogaresData$Sexo <- as.numeric(hogaresData$Sexo)
+hogaresData$Precio <- as.numeric(hogaresData$Precio)
+```
+
