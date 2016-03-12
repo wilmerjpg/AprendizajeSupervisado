@@ -12,7 +12,7 @@ hogaresData <- read.xlsx("hogares.xlsx", sheetIndex = 1, endRow = 104, header = 
 destino = "Piazzale Aldo Moro"
 
 # Colocar su API Key 
-api_key = "AIzaSyAUGKVTtI2SL6kY38CQVZh-WuLw_jSfgOo"
+api_key = "AIzaSyCeqh_fldrB_XU2cEp6qSTrtaZZm0OYC-8"
 
 hogaresData$Dirección <- gsub("\n", " ", hogaresData$Dirección)
 hogaresData$Distrito <- gsub("\n", " ", hogaresData$Distrito)
@@ -73,7 +73,7 @@ hogaresData$Notas[grepl("ragazzi/ragazze | ragazze/ragazzi | ragazze/i | ragazzi
 hogaresData$Notas[grepl("ragazze", hogaresData$Notas, ignore.case = TRUE)] <- 1 #Mujeres
 hogaresData$Notas[grepl("ragazzi", hogaresData$Notas, ignore.case = TRUE)] <- 0 #Hombre
 hogaresData$Notas[39] <- 2 #Como no se especifica se asume que puede ser indiferente el sexo
-colnames(hogaresData)[ncol(hogaresData)] <- "Sexo"
+colnames(hogaresData)[colnames(hogaresData) == "Notas"] <- "Sexo"
 
 #Nueva columna Tutto.Incluso
 hogaresData["Todo.Incluido"] <- NA
@@ -200,5 +200,13 @@ hogaresData$Precio.Mensual <- NULL
 hogaresData$Tipo.de.Inmueble <- as.numeric(hogaresData$Tipo.de.Inmueble)
 hogaresData$Sexo <- as.numeric(hogaresData$Sexo)
 hogaresData$Precio <- as.numeric(hogaresData$Precio)
+hogaresData$Tipo.de.Inmueble
 
 
+
+dataHombres = hogaresData[hogaresData$Sexo != 1, ]
+dataMujeres = hogaresData[hogaresData$Sexo != 0, ]
+
+modelo1=lm(dataHombres$Precio~dataHombres$Tipo.de.Inmueble)
+plot(dataHombres$Tipo.de.Inmueble,dataHombres$Precio)
+abline(modelo1)

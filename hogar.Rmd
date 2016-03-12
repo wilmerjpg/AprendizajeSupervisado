@@ -86,7 +86,7 @@ hogaresData$Notas[grepl("ragazzi/ragazze | ragazze/ragazzi | ragazze/i | ragazzi
 hogaresData$Notas[grepl("ragazze", hogaresData$Notas, ignore.case = TRUE)] <- 1 #Mujeres
 hogaresData$Notas[grepl("ragazzi", hogaresData$Notas, ignore.case = TRUE)] <- 0 #Hombre
 hogaresData$Notas[39] <- 2 #Como no se especifica se asume que puede ser indiferente el sexo
-colnames(hogaresData)[ncol(hogaresData)] <- "Sexo"
+colnames(hogaresData)[colnames(hogaresData) == "Notas"] <- "Sexo"
 ```
 
 
@@ -208,7 +208,7 @@ for (i in 1:nrow(hogaresData)) {
 }
 ```
 
-Por última se elimnan las columnas que ya no se necesitan dado que su data ya fue vaciada en otras columnas para un mejor manejo y las columnas que manejan numeros enteros pero en un principio manejaban otro tipo de datos
+Se elimnan las columnas que ya no se necesitan dado que su data ya fue vaciada en otras columnas para un mejor manejo y las columnas que manejan numeros enteros pero en un principio manejaban otro tipo de datos
 ```{r }
 hogaresData$Habitaciones.Disponibles <- NULL
 hogaresData$Precio.Mensual <- NULL
@@ -217,3 +217,23 @@ hogaresData$Sexo <- as.numeric(hogaresData$Sexo)
 hogaresData$Precio <- as.numeric(hogaresData$Precio)
 ```
 
+
+Se crean dos datasets para en uno tener la data de las habitaciones disponibles para hombres y en otro la data de las habitaciones disponibles para muejeres
+```{r }
+dataHombres = hogaresData[hogaresData$Sexo != 1, ]
+dataMujeres = hogaresData[hogaresData$Sexo != 0, ]
+```
+
+Una vez realizada varias pruebas se detectó que los mejores atributos que se pueden utilizar en el modelo de regresion lineal para predecir el precio de la habitacion para hombres son
+```{r }
+modelo1=lm(dataHombres$Precio~dataHombres$Tipo.de.Inmueble)
+plot(dataHombres$Tipo.de.Inmueble,dataHombres$Precio)
+abline(modelo1)
+```
+
+Una vez realizada varias pruebas se detectó que los mejores atributos que se pueden utilizar en el modelo de regresion lineal para predecir el precio de la habitacion para mujeres son
+```{r }
+modelo1=lm(dataHombres$Precio~dataHombres$Tipo.de.Inmueble)
+plot(dataHombres$Tipo.de.Inmueble,dataHombres$Precio)
+abline(modelo1)
+```
