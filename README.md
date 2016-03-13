@@ -18,9 +18,9 @@ El entorno de desarrolo se realizó en el sistema opertivo Windows 8.1 Pro de 64
   * becas.R: Archivo en R con todas las instrucciones utilizadas para el desarrollo de la primera actividad "Becas Crema 2.0"
   * becas.Rmd: Archivo Rmd con todas las instrucciones y su respectiva documentación utilizadas para el desarrollo de la primera actividad "Becas Crema 2.0"
   * minable.csv: dataset utilizado para la implementación de la primera actividad
-  * google_api.R: 
-  * usage.R:
-  * hogares.R: 
+  * google_api.R: archivo para la utilizacion del Api de Google Maps Directions
+  * hogar.R: Archivo en R con todas las instrucciones utilizadas para el desarrollo de la segunda actividad "Escogiendo un Hogar"
+  * hogar.Rmd: Archivo Rmd con todas las instrucciones y su respectiva documentación utilizadas para el desarrollo de la segunda actividad "Escogiendo un Hogar"
 
 ## Creador
   * Wilmer Prieto
