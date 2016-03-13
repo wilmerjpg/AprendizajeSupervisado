@@ -207,6 +207,9 @@ hogaresData$Tipo.de.Inmueble
 dataHombres = hogaresData[hogaresData$Sexo != 1, ]
 dataMujeres = hogaresData[hogaresData$Sexo != 0, ]
 
-modelo1=lm(dataHombres$Precio~dataHombres$Tipo.de.Inmueble)
-plot(dataHombres$Tipo.de.Inmueble,dataHombres$Precio)
-abline(modelo1)
+#Para
+modelo1=lm(dataHombres$Precio ~ . , data = dataHombres)
+modelo2=lm(dataMujeres$Precio ~ . , data = dataMujeres)
+#newRow <- dataHombres[1,]
+#prediction <- predict(modelo1, newdata = newRow)
+#prediction

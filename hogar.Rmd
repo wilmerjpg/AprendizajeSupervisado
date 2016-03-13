@@ -224,16 +224,14 @@ dataHombres = hogaresData[hogaresData$Sexo != 1, ]
 dataMujeres = hogaresData[hogaresData$Sexo != 0, ]
 ```
 
-Una vez realizada varias pruebas se detectó que los mejores atributos que se pueden utilizar en el modelo de regresion lineal para predecir el precio de la habitacion para hombres son
+Una vez realizada varias pruebas se detectó que es bueno mantener todos los atributos para la prediccion del precio de la habitacion para ambos modelos, el de hombres y el de mujeres, siendo los mas influyentes el tipo de habitacion, la duracion y el tipo de inmueble, esto fue visto al observar el coeficiente de correlacion entre la columna a predecir y cada una de las columnas del dataset
 ```{r }
-modelo1=lm(dataHombres$Precio~dataHombres$Tipo.de.Inmueble)
-plot(dataHombres$Tipo.de.Inmueble,dataHombres$Precio)
-abline(modelo1)
-```
+modelo1=lm(dataHombres$Precio ~ . , data = dataHombres)
+modelo2=lm(dataMujeres$Precio ~ . , data = dataMujeres)
 
-Una vez realizada varias pruebas se detectó que los mejores atributos que se pueden utilizar en el modelo de regresion lineal para predecir el precio de la habitacion para mujeres son
-```{r }
-modelo1=lm(dataHombres$Precio~dataHombres$Tipo.de.Inmueble)
-plot(dataHombres$Tipo.de.Inmueble,dataHombres$Precio)
-abline(modelo1)
+#newRow <- dataHombres[5,]
+#prediction <- predict(modelo1, newdata = newRow) || predict(modelo2, newdata = newRow) 
+#prediction
+
 ```
+Las ultimas tres lineas que aparecen comentadas son las que se utilizarian para almacenar los datos y realizar una prediccion, siendo newRow el registro al que se le desea predecir el precio
